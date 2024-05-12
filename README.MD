@@ -29,5 +29,5 @@ docker build -t model-manager .
 Depois execute
 
 ```bash
-docker run -d -p 5000:5000 --network minha-rede model-manager
+docker run -d -p 5000:5000 --network bridge model-manager
 ```
