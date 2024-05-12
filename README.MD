@@ -18,7 +18,10 @@ Abra o terminal e navegue até o diretório onde está o Dockerfile. Execute o c
 
 ```bash
 docker build -t model-manager .
+```
 
+Depois execute
 
 ```bash
 docker run -d -p 5000:5000 model-manager
+```
