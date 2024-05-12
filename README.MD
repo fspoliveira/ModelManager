@@ -16,6 +16,12 @@ Siga as instruções abaixo para colocar a aplicação Model Manager em funciona
 
 Abra o terminal e navegue até o diretório onde está o Dockerfile. Execute o comando abaixo para construir a imagem Docker do projeto:
 
+Crie a rede
+```bash
+docker network create minha-rede
+```
+
+Construa a imagem
 ```bash
 docker build -t model-manager .
 ```
@@ -23,5 +29,5 @@ docker build -t model-manager .
 Depois execute
 
 ```bash
-docker run -d -p 5000:5000 model-manager
+docker run -d -p 5000:5000 --network minha-rede model-manager
 ```
