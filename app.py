@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_restx import Api, Resource, fields
 import requests
 
@@ -43,7 +43,7 @@ class PropensaoInadimplencia(Resource):
         if request.is_json:
             data = request.json
             # Chama a API de predição do outro servidor
-            response = requests.post('http://localhost:5001/predict', json=data)
+            response = requests.post('http://localhost:5001/Prediction/predict', json=data)
             if response.status_code == 200:
                 prediction = response.json()
                 return {'mensagem': 'Dados recebidos e processados com sucesso', 'predicao': prediction}
