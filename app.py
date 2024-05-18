@@ -33,6 +33,12 @@ model = api.model('PropensaoInadimplencia', {
     })
 })
 
+cluster_input_model = api.model('ClusterValue', {
+    'loan_amount': fields.Float(required=True, description='The loan amount'),
+    'income': fields.Float(required=True, description='Income of the applicant'),
+    'Credit_Score': fields.Float(required=True, description='Credit Score of the applicant')
+})
+
 @ns.route('/propensao')
 class PropensaoInadimplencia(Resource):
     @api.expect(data_model)
@@ -50,7 +56,7 @@ class PropensaoInadimplencia(Resource):
 
 @ns.route('/clustering')
 class CustomerClustering(Resource):
-    @api.expect(data_model)
+    @api.expect(cluster_input_model)
     def post(self):
         """Envia os dados diretamente para a API de Clustering para obter a classificação de clustering"""
         if request.is_json:
