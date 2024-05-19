@@ -1,7 +1,9 @@
 version: '3.8'
 services:
   postgres:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: custom_postgres:latest
     ports:
       - "5432:5432"

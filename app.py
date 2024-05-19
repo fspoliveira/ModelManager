@@ -2,6 +2,7 @@ from flask import Flask, request
 from flask_restx import Api, Resource, fields
 from sqlalchemy import create_engine, Column, Integer, String, JSON, DateTime, func
 from sqlalchemy.orm import declarative_base, sessionmaker
+from flask_migrate import Migrate
 import requests
 import os
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ load_dotenv_utf8(dotenv_path)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS') == 'True'
 
 # Configuração do SQLAlchemy
 engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
@@ -25,6 +27,9 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 Base = declarative_base()
+
+# Configuração do Flask-Migrate
+migrate = Migrate(app, Base)
 
 api = Api(app, version='1.0', title='API Analise de Crédito Quantum Finance',
           description='Uma API simples para calcular a propensão à inadimplência e fazer predições')
