@@ -1,40 +1,45 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:latest
-    container_name: postgres_container
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    build: .
+    image: custom_postgres:latest
     ports:
       - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
 
   flask_app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.flask
     container_name: flask_container
     environment:
-      FLASK_APP: app.py
-      FLASK_RUN_HOST: 0.0.0.0
-      FLASK_RUN_PORT: 5000
+      - FLASK_APP=${FLASK_APP}
+      - FLASK_RUN_HOST=${FLASK_RUN_HOST}
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT}
+      - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
+      - SQLALCHEMY_TRACK_MODIFICATIONS=${SQLALCHEMY_TRACK_MODIFICATIONS}
     volumes:
       - .:/app
     ports:
-      - "5000:5000"
+      - "${FLASK_RUN_PORT}:${FLASK_RUN_PORT}"
     depends_on:
       - postgres
     networks:
       - app_network
-
-volumes:
-  postgres_data:
+    command: >
+      bash -c "flask db upgrade && flask run --host=${FLASK_RUN_HOST} --port=${FLASK_RUN_PORT}"
 
 networks:
   app_network:
     driver: bridge
+
+volumes:
+  postgres_data:

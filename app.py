@@ -1,11 +1,56 @@
 from flask import Flask, request
 from flask_restx import Api, Resource, fields
+from sqlalchemy import create_engine, Column, Integer, String, JSON, DateTime, func
+from sqlalchemy.orm import declarative_base, sessionmaker
 import requests
+import os
+from dotenv import load_dotenv
+import io
+
+# Função personalizada para carregar o arquivo .env com codificação UTF-8
+def load_dotenv_utf8(dotenv_path):
+    with io.open(dotenv_path, 'r', encoding='utf-8') as dotenv_file:
+        load_dotenv(stream=dotenv_file)
+
+# Carregar variáveis de ambiente do arquivo .env usando a função personalizada
+dotenv_path = '.env'
+load_dotenv_utf8(dotenv_path)
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+
+# Configuração do SQLAlchemy
+engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+Session = sessionmaker(bind=engine)
+session = Session()
+
+Base = declarative_base()
+
 api = Api(app, version='1.0', title='API Analise de Crédito Quantum Finance',
           description='Uma API simples para calcular a propensão à inadimplência e fazer predições')
+
 ns = api.namespace('Inadimplencia', description='Operações de inadimplência')
+ns1 = api.namespace('Classificação', description='Classificação Clustering')
+
+# Definição do modelo de dados
+class APIRequest(Base):
+    __tablename__ = 'api_requests'
+    id = Column(Integer, primary_key=True)
+    request_type = Column(String(50), nullable=False)
+    request_json = Column(JSON, nullable=False)
+    response_json = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=func.current_timestamp())
+
+# Função para salvar a requisição e a resposta no banco de dados
+def save_to_db(request_type, request_json, response_json):
+    new_request = APIRequest(
+        request_type=request_type,
+        request_json=request_json,
+        response_json=response_json
+    )
+    session.add(new_request)
+    session.commit()
+
 # Modelo esperado para entrada de dados, com exemplo
 data_model = api.model('Data', {
     'loan_amount': fields.Integer(required=True, description='Quantia do empréstimo'),
@@ -50,11 +95,12 @@ class PropensaoInadimplencia(Resource):
             response = requests.post('http://localhost:5001/Prediction/predict', json=data)
             if response.status_code == 200:
                 prediction = response.json()
+                save_to_db('propensao', data, prediction)
                 return {'mensagem': 'Dados recebidos e processados com sucesso', 'predicao': prediction}
             else:
                 return api.abort(500, 'Erro ao chamar a API de predição')
 
-@ns.route('/clustering')
+@ns1.route('/clustering')
 class CustomerClustering(Resource):
     @api.expect(cluster_input_model)
     def post(self):
@@ -65,6 +111,7 @@ class CustomerClustering(Resource):
             cluster_response = requests.post('http://localhost:5002/Clustering/cluster', json=data)
             if cluster_response.status_code == 200:
                 cluster_info = cluster_response.json()
+                save_to_db('clustering', data, cluster_info)
                 return {'mensagem': 'Clustering realizado com sucesso', 'cluster_info': cluster_info}, 200
             else:
                 return api.abort(500, 'Erro ao chamar a API de clustering')
@@ -72,4 +119,5 @@ class CustomerClustering(Resource):
             return api.abort(400, 'Requisição inválida. O corpo da requisição deve estar no formato JSON')
 
 if __name__ == '__main__':
+    Base.metadata.create_all(engine)
     app.run(debug=True, host='0.0.0.0', port=5000)
